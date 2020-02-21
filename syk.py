@@ -3,6 +3,7 @@ from openfermion.transforms import bravyi_kitaev, bravyi_kitaev_fast, get_sparse
 import numpy as np
 from itertools import combinations_with_replacement
 import openfermion as of
+import sympy
 
 # Does this make sense for non-multiples of 4?
 N= 4 # Number of sites for a single SYK model
@@ -16,6 +17,7 @@ def factorial(n):
 
 J_var = 2**(q-1) * J**2 * factorial(q-1) / (q * N**(q-1))
 
+# DONE: Figure out how to do the double copying
 SYK_1_indices = list(combinations_with_replacement(range(N), q))
 SYK_2_indices = list(combinations_with_replacement(range(N, 2*N), q))
 # DONE: Generate couplings
@@ -50,10 +52,13 @@ matrix_ham = get_sparse_operator(total_ham) # todense() allows for ED
 
 # TODO: See if can find the exact ground state of this new hamiltonian (Maybe in julia..)
 def gs_energy(hamiltonian):
-    pass
+    from scipy.linalg import eigvalsh
+    return eigvalsh(hamiltonian, eigvals=(0,0))
+
+print(gs_energy(matrix_ham.todense()))
 
 # TODO: Check out the hamiltonian as it's printed outermost
-# DONE: Figure out how to do the double copying
+# DONE: Make routine to measure the energy of the hamiltonian in a circuit
 # TODO: Compare the variational ground state
 # This bit will probably be done variationally in the qubit basis, but not really sure that it matters too much
 # TODO: Check out what alternating hamiltonians are good to try to fit this into QAOA
