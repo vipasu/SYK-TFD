@@ -50,13 +50,14 @@ bk_interaction = bravyi_kitaev(interaction_hamiltonian)
 total_ham = bk_hamiltonian_1 + bk_hamiltonian_2 + bk_interaction
 matrix_ham = get_sparse_operator(total_ham) # todense() allows for ED
 
-# TODO: See if can find the exact ground state of this new hamiltonian (Maybe in julia..)
+# DONE: See if can find the exact ground state of this new hamiltonian (Maybe in julia..)
 def gs_energy(hamiltonian):
     from scipy.linalg import eigvalsh
     return eigvalsh(hamiltonian, eigvals=(0,0))
 
 print(gs_energy(matrix_ham.todense()))
 
+# TODO: Come up with variational ansatz
 # TODO: Check out the hamiltonian as it's printed outermost
 # DONE: Make routine to measure the energy of the hamiltonian in a circuit
 # TODO: Compare the variational ground state

@@ -1,5 +1,6 @@
 ## Variational stuff
 import cirq
+import sympy
 import openfermioncirq as ofc
 objective = ofc.HamiltonianObjective(total_ham)
 class MyAnsatz(ofc.VariationalAnsatz):
@@ -15,7 +16,7 @@ class MyAnsatz(ofc.VariationalAnsatz):
         yield cirq.Rx(np.pi/2).on(q3)
 
         yield cirq.CNOT(q0, q1), cirq.CNOT(q1, q2), cirq.CNOT(q2, q3)
-        # yield cirq.Rz(sympy.Symbol('theta_0')).on(q3)
+        yield cirq.ZPowGate(exponent=sympy.Symbol('theta_0')).on(q3)
         yield cirq.CNOT(q2, q3), cirq.CNOT(q1, q2), cirq.CNOT(q0, q1)
 
         yield cirq.H(q0), cirq.H(q1), cirq.H(q2)
