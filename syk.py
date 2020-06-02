@@ -9,35 +9,42 @@ import argparse
 from scipy.linalg import eigh
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-N", type=int, default=8, help="Number of fermions")
-parser.add_argument("--seed", dest="seed", default=0, type=int, help="Random seed")
-args = parser.parse_args()
-# print(args)
-
-
-
-
-# Does this make sense for non-multiples of 4?
-N= args.N # Number of sites for a single SYK model
-q = 4 # setting q = N is all to all connectivity
-J = 1 # overall coupling  strength
-mu = .01 # interaction strength
 def factorial(n):
     if n == 1:
         return 1
     return n * factorial(n-1)
 
-J_var = 2**(q-1) * J**2 * factorial(q-1) / (q * N**(q-1))
+def get_couplings(N, var, L_inds, R_inds, seed, q):
+    """Returns dictionaries of hamiltonian terms and their coefficients"""
+    np.random.seed(args.seed)
+    couplings = np.random.normal(scale=np.sqrt(var), size=len(L_inds))
+    phase = (-1)**(q/2)
+    J_L = {i: c for i, c in zip(L_inds, couplings)}
+    J_R = {i: phase * c for i, c in zip(R_inds, couplings)}
+    return J_L, J_R
 
-# DONE: Figure out how to do the double copying
-SYK_1_indices = list(combinations(range(N), q))
-SYK_2_indices = list(combinations(range(N, 2*N), q))
-# DONE: Generate couplings
-np.random.seed(args.seed)
-couplings = np.random.normal(scale=np.sqrt(J_var), size=len(SYK_1_indices))
-J_1_q = {i: c for i, c in zip(SYK_1_indices, couplings)}
-J_2_q = {i: -c for i, c in zip(SYK_2_indices, couplings)}
+def convert_H_majorana_to_qubit(inds, J_dict, N):
+    """Convert SYK hamiltonian (dictionary) from majorana terms to Pauli terms"""
+    ham_terms = [MajoranaOperator(ind, J_dict[ind]) for ind in inds]
+    ham_sum = sum_ops(ham_terms)
+    return bravyi_kitaev(ham_sum, N)
+
+
+
+def q_helper(idx):
+    return cirq.LineQubit(idx)
+
+
+def construct_pauli_string(ham, key):
+    gate_dict = {'X': cirq.X,
+                'Y': cirq.Y,
+                'Z': cirq.Z}
+
+    def list_of_terms(key):
+        return [gate_dict[label](q_helper(idx)) for (idx, label) in key]
+
+
+    return cirq.PauliString(ham.terms[key], list_of_terms(key))
 
 
 def sum_ops(operators):
@@ -45,60 +52,64 @@ def sum_ops(operators):
     return sum(operators, MajoranaOperator((), 0))
 
 
-
-# DONE: Iterate over couplings and produce corresponding operator
-# Insert factors of i here if there are terms that don't have 4 terms in them
-hamiltonian_1_terms = [MajoranaOperator(ind, J_1_q[ind]) for ind in SYK_1_indices]
-total_hamiltonian_1 = sum_ops(hamiltonian_1_terms)
-hamiltonian_2_terms = [MajoranaOperator(ind, J_2_q[ind]) for ind in SYK_2_indices]
-total_hamiltonian_2 = sum_ops(hamiltonian_2_terms)
-
-interaction_terms = [MajoranaOperator((i, i+N), 1j * mu) for i in range(N)]
-interaction_hamiltonian = sum_ops(interaction_terms)
-
-# BK_terms = [bravyi_kitaev(op) for op in hamiltonian_terms]
-bk_hamiltonian_1 = bravyi_kitaev(total_hamiltonian_1, N)
-bk_hamiltonian_2 = bravyi_kitaev(total_hamiltonian_2, N)
-bk_interaction = bravyi_kitaev(interaction_hamiltonian, N)
-
-total_ham = bk_hamiltonian_1 + bk_hamiltonian_2 + bk_interaction
-matrix_ham = get_sparse_operator(total_ham) # todense() allows for ED
-
-# DONE: See if can find the exact ground state of this new hamiltonian (Maybe in julia..)
 def gs_energy(hamiltonian):
     from scipy.linalg import eigvalsh
     return eigvalsh(hamiltonian, eigvals=(0,0))
 
-# print(gs_energy(matrix_ham.todense()))
 
-# DONE: Make routine to measure the energy of the hamiltonian in a circuit
-# TODO: Compare the variational ground state
-# This bit will probably be done variationally in the qubit basis, but not really sure that it matters too much
+def main(N, seed):
+    # Does this make sense for non-multiples of 4?
+    #N Number of sites for a single SYK model
+    q = 4 # setting q = N is all to all connectivity
+    J = 1 # overall coupling  strength
+    mu = .01 # interaction strength
+
+    J_var = 2**(q-1) * J**2 * factorial(q-1) / (q * N**(q-1))
+
+    # DONE: Figure out how to do the double copying
+    SYK_L_indices = list(combinations(range(N), q))
+    SYK_R_indices = list(combinations(range(N, 2*N), q))
+    interaction_indices = [(i, i+N) for i in range(N)]
+    # DONE: Generate couplings
+    J_L, J_R = get_couplings(N, J_var, SYK_L_indices, SYK_R_indices, seed, q)
+    interaction_strength = {ind: 1j * mu for ind in interaction_indices}
+
+    H_L = convert_H_majorana_to_qubit(SYK_L_indices, J_L, N)
+    H_R = convert_H_majorana_to_qubit(SYK_R_indices, J_R, N)
+    H_int = convert_H_majorana_to_qubit(interaction_indices, interaction_strength, N)
+
+    total_ham = H_L + H_R + H_int
+    annihilation_ham = H_L - H_R
+    matrix_ham = get_sparse_operator(total_ham) # todense() allows for ED
 
 
-def construct_pauli_string(ham, key):
-    gate_dict = {'X': cirq.X,
-                 'Y': cirq.Y,
-                 'Z': cirq.Z}
-    def q_helper(idx):
-        return cirq.LineQubit(idx)
+    all_strings = list(total_ham.terms)
+    test_string = construct_pauli_string(total_ham, all_strings[0])
 
-    def list_of_terms(key):
-        return [gate_dict[label](q_helper(idx)) for (idx, label) in key]
+    # Diagonalize qubit hamiltonian to compare the spectrum of variational energy
+    e, v = eigh(matrix_ham.todense())
+    n_spec = 4
 
 
-    return cirq.PauliString(ham.terms[key], list_of_terms(key))
-qubits = cirq.LineQubit.range(N)
-prep_circuit = cirq.Circuit(*([cirq.Z(qubits[i]) for i in range(N)] +
-                            [cirq.X(qubits[1])]))
-psi = cirq.final_wavefunction(prep_circuit)
-all_strings = list(total_ham.terms)
-test_string = construct_pauli_string(total_ham, all_strings[0])
+    # Write out qubit hamiltonian to file
+    fname = "SYK_ham_{}_{}.txt".format(N, seed)
 
-e, v = eigh(matrix_ham.todense())
-print("E0, E1 = {},{}".format(e[0], e[1]))
-for k, v in total_ham.terms.items():
-    print("{} => {}".format(np.real(v), k))
-# Debugging BK on individual terms
-# for t in hamiltonian_1_terms:
-#     print(t, bravyi_kitaev(t))
+    with open(fname, 'w') as f:
+        e_string = ",".join(map(str, e[:n_spec]))
+        f.write(e_string + '\n')
+        for k, v in total_ham.terms.items():
+            f.write("{} => {}\n".format(np.real(v), k))
+
+    # Write out annihilator to file
+    fname = "SYK_annihilator_{}_{}.txt".format(N, seed)
+    with open(fname, 'w') as f:
+        for k, v in annihilation_ham.terms.items():
+            f.write("{} => {}\n".format(np.real(v), k))
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-N", type=int, default=8, help="Number of fermions")
+    parser.add_argument("--seed", dest="seed", default=0, type=int, help="Random seed")
+    args = parser.parse_args()
+    # print(args)
+    main(args.N, args.seed)

@@ -9,46 +9,80 @@ function extract_pauli_term(line)
     return coefficient, terms
 end
 
+function construct_hamiltonian_from_terms(lines, N)
+    sx = i->put(N, i=>X)
+    sy = i->put(N, i=>Y)
+    sz = i->put(N, i=>Z)
+    ham = map(lines) do line
+        coef, pauli_terms = extract_pauli_term(line)
+        pauli_string =  (map(pauli_terms) do item
+                            q_ind, pauli_choice = item
+                            q_ind = q_ind + 1 # conversion from python
+                            if pauli_choice == 'X'
+                                return sx(q_ind)
+                            elseif pauli_choice == 'Y'
+                                return sy(q_ind)
+                            elseif pauli_choice == 'Z'
+                                return sz(q_ind)
+                            else
+                                return "whips"
+                            end
+                         end |> prod)
+        coef * pauli_string
+    end |> sum
+end
 
 
-nbit = 12
-lines = readlines("SYK_$(nbit)_ham.txt")
-SYK_energies = lines[1]
-lines = lines[2:end]
-# print(lines[1])
-sx = i->put(nbit, i=>X)
-sy = i->put(nbit, i=>Y)
-sz = i->put(nbit, i=>Z)
-ham = map(lines) do line
-    val, pauli_terms = extract_pauli_term(line)
-    pauli_string =  (map(pauli_terms) do item
-        q_ind, pauli_choice = item
-        q_ind = q_ind + 1 # conversion from python
-        if pauli_choice == 'X'
-            return sx(q_ind)
-        elseif pauli_choice == 'Y'
-            return sy(q_ind)
-        elseif pauli_choice == 'Z'
-            return sz(q_ind)
-        else
-            return "whips"
-        end
-    end |> prod)
-    val * pauli_string
-end |> sum
+function gradient_schedule(num_iters, eta_1, eta_0)
+    map(x -> eta_1/x + eta_0, 1:num_steps)
+end
 
-n, d = nbit, 100
-circuit = dispatch!(variational_circuit(n, d), :random)
+
+function read_hamiltonian(fname, N)
+    lines = readlines(fname)
+    SYK_energies = map(x -> parse(Float64, x), split(lines[1],","))
+    lines = lines[2:end]
+    # print(lines[1])
+    construct_hamiltonian_from_terms(lines, N), SYK_energies
+end
+
+function read_annihilation(fname, N)
+    lines = readlines(fname)
+    construct_hamiltonian_from_terms(lines, N)
+end
+
+
+function test_annihilation(N, seed, circuit)
+    annihilation_fname =  "SYK_annihilator_$(N)_$(seed).txt"
+    h = read_annihilation(annihilation_fname, N)
+    return real.(expect(h, zero_state(N) => circuit))
+end
+
+
+N = 8
+seed = 2
+ham_fname= "SYK_ham_$(N)_$(seed).txt"
+ham, SYK_energies = read_hamiltonian(ham_fname, N)
+
+d = 50
+circuit = dispatch!(variational_circuit(N, d), :random)
 h = ham
 
 energies = []
-for i in 1:200
-    _, grad = expect'(h, zero_state(n) => circuit)
-    dispatch!(-, circuit, 1e-2* grad)
-    energy = (real.(expect(h, zero_state(n)=>circuit)))
-    println("Step $i, energy = $energy")
+num_steps = 500
+etas = gradient_schedule(num_steps, .2, .02)
+for i in 1:num_steps
+    _, grad = expect'(h, zero_state(N) => circuit)
+    dispatch!(-, circuit, etas[i]* grad)
+    energy = (real.(expect(h, zero_state(N)=>circuit)))
+    if i % 10 == 0
+        println("Step $i, energy = $energy")
+    end
+
     push!(energies, energy)
 end
 println(SYK_energies)
+
+println(test_annihilation(N, seed, circuit))
 
 # plot(energies, show=true)
