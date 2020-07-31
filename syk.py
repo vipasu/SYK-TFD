@@ -67,8 +67,10 @@ def main(N, seed):
     J_var = 2**(q-1) * J**2 * factorial(q-1) / (q * N**(q-1))
 
     # DONE: Figure out how to do the double copying
-    SYK_L_indices = list(combinations(range(N), q))
-    SYK_R_indices = list(combinations(range(N, 2*N), q))
+    L_indices = range(N)
+    R_indices = range(N, 2*N)
+    SYK_L_indices = list(combinations(L_indices, q))
+    SYK_R_indices = list(combinations(R_indices, q))
     interaction_indices = [(i, i+N) for i in range(N)]
     # DONE: Generate couplings
     J_L, J_R = get_couplings(N, J_var, SYK_L_indices, SYK_R_indices, seed, q)
