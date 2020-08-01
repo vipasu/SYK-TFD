@@ -57,12 +57,12 @@ def gs_energy(hamiltonian):
     return eigvalsh(hamiltonian, eigvals=(0,0))
 
 
-def main(N, seed):
+def main(N, seed, mu):
+    # mu interaction strength
     # Does this make sense for non-multiples of 4?
     #N Number of sites for a single SYK model
     q = 4 # setting q = N is all to all connectivity
     J = 1 # overall coupling  strength
-    mu = .01 # interaction strength
 
     J_var = 2**(q-1) * J**2 * factorial(q-1) / (q * N**(q-1))
 
@@ -71,7 +71,7 @@ def main(N, seed):
     R_indices = range(N, 2*N)
     SYK_L_indices = list(combinations(L_indices, q))
     SYK_R_indices = list(combinations(R_indices, q))
-    interaction_indices = [(i, i+N) for i in range(N)]
+    interaction_indices = [(l, r) for l, r in zip(L_indices, R_indices)]
     # DONE: Generate couplings
     J_L, J_R = get_couplings(N, J_var, SYK_L_indices, SYK_R_indices, seed, q)
     interaction_strength = {ind: 1j * mu for ind in interaction_indices}
@@ -112,6 +112,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-N", type=int, default=8, help="Number of fermions")
     parser.add_argument("--seed", dest="seed", default=0, type=int, help="Random seed")
+    parser.add_argument("--mu", dest="mu", default=0.01, type=float, help="Interaction mu")
     args = parser.parse_args()
     # print(args)
-    main(args.N, args.seed)
+    main(args.N, args.seed, args.mu)
