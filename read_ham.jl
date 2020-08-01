@@ -56,14 +56,14 @@ module read_ham
 
 
   function test_annihilation(N, seed, circuit)
-      annihilation_fname =  "SYK_annihilator_$(N)_$(seed).txt"
+      annihilation_fname =  "SYK_annihilator_JW_$(N)_$(seed).txt"
       h = read_annihilation(annihilation_fname, N)
       return real.(expect(h, zero_state(N) => circuit))
   end
 
 
   function default_train(N, seed)
-    ham_fname= "SYK_ham_$(N)_$(seed).txt"
+    ham_fname= "SYK_ham_JW_$(N)_$(seed).txt"
     ham, SYK_energies = read_hamiltonian(ham_fname, N)
 
     d = 50

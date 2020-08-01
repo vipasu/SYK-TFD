@@ -1,5 +1,5 @@
 from openfermion.ops import FermionOperator, MajoranaOperator
-from openfermion.transforms import bravyi_kitaev, bravyi_kitaev_fast, get_sparse_operator
+from openfermion.transforms import bravyi_kitaev, bravyi_kitaev_fast, get_sparse_operator, jordan_wigner
 import numpy as np
 from itertools import combinations
 import openfermion as of
@@ -27,7 +27,7 @@ def convert_H_majorana_to_qubit(inds, J_dict, N):
     """Convert SYK hamiltonian (dictionary) from majorana terms to Pauli terms"""
     ham_terms = [MajoranaOperator(ind, J_dict[ind]) for ind in inds]
     ham_sum = sum_ops(ham_terms)
-    return bravyi_kitaev(ham_sum, N)
+    return jordan_wigner(ham_sum)
 
 
 
@@ -94,7 +94,7 @@ def main(N, seed):
 
 
     # Write out qubit hamiltonian to file
-    fname = "SYK_ham_{}_{}.txt".format(N, seed)
+    fname = "SYK_ham_JW_{}_{}.txt".format(N, seed)
 
     with open(fname, 'w') as f:
         e_string = ",".join(map(str, e[:n_spec]))
@@ -103,7 +103,7 @@ def main(N, seed):
             f.write("{} => {}\n".format(np.real(v), k))
 
     # Write out annihilator to file
-    fname = "SYK_annihilator_{}_{}.txt".format(N, seed)
+    fname = "SYK_annihilator_JW_{}_{}.txt".format(N, seed)
     with open(fname, 'w') as f:
         for k, v in annihilation_ham.terms.items():
             f.write("{} => {}\n".format(np.real(v), k))
