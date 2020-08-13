@@ -57,12 +57,12 @@ def gs_energy(hamiltonian):
     return eigvalsh(hamiltonian, eigvals=(0,0))
 
 
-def main(N, seed):
+def main(N, seed, mu):
     # Does this make sense for non-multiples of 4?
     #N Number of sites for a single SYK model
     q = 4 # setting q = N is all to all connectivity
     J = 1 # overall coupling  strength
-    mu = .01 # interaction strength
+    # mu = .01 # interaction strength
 
     J_var = 2**(q-1) * J**2 * factorial(q-1) / (q * N**(q-1))
 
@@ -94,7 +94,7 @@ def main(N, seed):
 
 
     # Write out qubit hamiltonian to file
-    fname = "SYK_ham_JW_{}_{}.txt".format(N, seed)
+    fname = "data/SYK_ham_JW_{}_{}_{:.2f}.txt".format(N, seed, mu)
 
     with open(fname, 'w') as f:
         e_string = ",".join(map(str, e[:n_spec]))
@@ -103,7 +103,7 @@ def main(N, seed):
             f.write("{} => {}\n".format(np.real(v), k))
 
     # Write out annihilator to file
-    fname = "SYK_annihilator_JW_{}_{}.txt".format(N, seed)
+    fname = "data/SYK_annihilator_JW_{}_{}_{:.2f}.txt".format(N, seed, mu)
     with open(fname, 'w') as f:
         for k, v in annihilation_ham.terms.items():
             f.write("{} => {}\n".format(np.real(v), k))
@@ -111,7 +111,8 @@ def main(N, seed):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-N", type=int, default=8, help="Number of fermions")
+    parser.add_argument("--mu", type=float, default=.01, help="Interaction strength")
     parser.add_argument("--seed", dest="seed", default=0, type=int, help="Random seed")
     args = parser.parse_args()
     # print(args)
-    main(args.N, args.seed)
+    main(args.N, args.seed, args.mu)
