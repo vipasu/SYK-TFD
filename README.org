@@ -1,0 +1,3 @@
+* Variational Preparation of the SYK TFD
+
+  This repository contains code for preparing the thermofield double state of the Sachdev-Ye-Kitaev model. As discussed in [1], for certain parameter regimes, this problem reduces to finding the ground state of a slightly modified Hamiltonian. This repository contains the code for preparing that state using techniques from variational quantum circuits, also referred to as parameterized quantum circuits, quantum neural nets, etc.
