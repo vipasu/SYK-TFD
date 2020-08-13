@@ -1,5 +1,5 @@
 from openfermion.ops import FermionOperator, MajoranaOperator
-from openfermion.transforms import bravyi_kitaev, bravyi_kitaev_fast, get_sparse_operator
+from openfermion.transforms import bravyi_kitaev, bravyi_kitaev_fast, get_sparse_operator, jordan_wigner
 import numpy as np
 from itertools import combinations
 import openfermion as of
@@ -27,7 +27,7 @@ def convert_H_majorana_to_qubit(inds, J_dict, N):
     """Convert SYK hamiltonian (dictionary) from majorana terms to Pauli terms"""
     ham_terms = [MajoranaOperator(ind, J_dict[ind]) for ind in inds]
     ham_sum = sum_ops(ham_terms)
-    return bravyi_kitaev(ham_sum, N)
+    return jordan_wigner(ham_sum)
 
 
 
@@ -58,9 +58,8 @@ def gs_energy(hamiltonian):
 
 
 def main(N, seed, mu):
+    # N Number of sites for a single SYK model
     # mu interaction strength
-    # Does this make sense for non-multiples of 4?
-    #N Number of sites for a single SYK model
     q = 4 # setting q = N is all to all connectivity
     J = 1 # overall coupling  strength
 
@@ -94,7 +93,7 @@ def main(N, seed, mu):
 
 
     # Write out qubit hamiltonian to file
-    fname = "SYK_ham_{}_{}.txt".format(N, seed)
+    fname = "data/SYK_ham_{}_{}_{:.2f}.txt".format(N, seed, mu)
 
     with open(fname, 'w') as f:
         e_string = ",".join(map(str, e[:n_spec]))
@@ -103,7 +102,7 @@ def main(N, seed, mu):
             f.write("{} => {}\n".format(np.real(v), k))
 
     # Write out annihilator to file
-    fname = "SYK_annihilator_{}_{}.txt".format(N, seed)
+    fname = "data/SYK_annihilator_{}_{}_{:.2f}.txt".format(N, seed, mu)
     with open(fname, 'w') as f:
         for k, v in annihilation_ham.terms.items():
             f.write("{} => {}\n".format(np.real(v), k))
@@ -111,6 +110,7 @@ def main(N, seed, mu):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-N", type=int, default=8, help="Number of fermions")
+    parser.add_argument("--mu", type=float, default=.01, help="Interaction strength")
     parser.add_argument("--seed", dest="seed", default=0, type=int, help="Random seed")
     parser.add_argument("--mu", dest="mu", default=0.01, type=float, help="Interaction mu")
     args = parser.parse_args()
