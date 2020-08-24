@@ -67,18 +67,18 @@ module read_ham
         ham_fname= "data/SYK_ham_$(N)_$(seed)_$(@sprintf("%.2f", mu)).txt"
         ham, SYK_energies = read_hamiltonian(ham_fname, N)
 
-        circuit = dispatch!(variational_circuit(N, d), :random)
+        circuit = dispatch!(variational_circuit(N, d), :zero)
         h = ham
 
         energies = []
         annihilators = []
         etas = gradient_schedule(num_steps, .4, .04)
-        energy = (real.(expect(h, zero_state(N)=>circuit)))
+        energy = (real.(expect(h, uniform_state(N)=>circuit)))
         push!(energies, energy)
         for i in 1:num_steps
-            _, grad = expect'(h, zero_state(N) => circuit)
+            _, grad = expect'(h, uniform_state(N) => circuit)
             dispatch!(-, circuit, etas[i]* grad)
-            energy = (real.(expect(h, zero_state(N)=>circuit)))
+            energy = (real.(expect(h, uniform_state(N)=>circuit)))
             parity = test_annihilation(N, seed, circuit, mu)
             if i % 10 == 0
                 println("Step $i, energy = $energy")

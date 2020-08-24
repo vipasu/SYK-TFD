@@ -80,8 +80,10 @@ def main(N, seed, mu):
     # Double copying by splitting L/R into two blocks
     # Alternatively, could stagger the indices so they are paired differently
     # into complex fermions
-    L_indices = range(N)
-    R_indices = range(N, 2*N)
+    # L_indices = range(0, 2 * N, 2)
+    # R_indices = range(1, 2 * N, 2)
+    L_indices = range(0, N)
+    R_indices = range(N, 2 * N)
     SYK_L_indices = list(combinations(L_indices, q))
     SYK_R_indices = list(combinations(R_indices, q))
     interaction_indices = [(l, r) for l, r in zip(L_indices, R_indices)]

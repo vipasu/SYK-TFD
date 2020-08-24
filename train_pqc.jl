@@ -31,6 +31,10 @@ s = ArgParseSettings()
     help = "Save the training data"
     arg_type = Bool
     default = true
+    "--desc"
+    help = "Description to add to the fname"
+    arg_type = String
+    default = ""
 end
 
 args = parse_args(s)
@@ -41,6 +45,7 @@ num_steps = args["num_steps"]
 num_layers = args["num_layers"]
 mu = args["mu"]
 save_flag = args["save"]
+desc = args["desc"]
 
 e1, a1, SYK1 = default_train(N, 0, mu, num_layers, num_steps)
 e2, a2, SYK2 = default_train(N, 1, mu, num_layers, num_steps)
@@ -62,26 +67,34 @@ if plot_jl
 
     display(plot(p, f1, f2, f3, f4, layout=@layout([A{.0001h}; [B C]; [D E]])))
 
-    q = plot(title=L"H_L - H_R", grid = false, showaxis = false, showframe=false, bottom_margin = -35Plots.px)
-    g1 = plot(a1, title="Model a", label="", ylabel="Energy", legendfonthalign=:center, xlim=(0, 500), ylim=(-.1, .1))
-    hline!([0],  label="",linestyle=:dash)
-    g2 = plot(a2, title="Model b", label="", xlim=(0, 500), ylim=(-.1, .1))
-    hline!([0],  label="",linestyle=:dash)
-    g3 = plot(a3, title="Model c", label="", xlabel="Iterations", ylabel="Energy", xlim=(0, 500), ylim=(-.1, .1))
-    hline!([0],  label="",linestyle=:dash)
-    g4 = plot(a4, title="Model d", label="", xlabel="Iterations", xlim=(0, 500), ylim=(-.1, .1))
-    hline!([0],  label="",linestyle=:dash)
-    display(plot(q, g1, g2, g3, g4, layout=@layout([A{.0001h}; [B C]; [D E]])))
+    # q = plot(title=L"H_L - H_R", grid = false, showaxis = false, showframe=false, bottom_margin = -35Plots.px)
+    # g1 = plot(a1, title="Model a", label="", ylabel="Energy", legendfonthalign=:center, xlim=(0, 500), ylim=(-.1, .1))
+    # hline!([0],  label="",linestyle=:dash)
+    # g2 = plot(a2, title="Model b", label="", xlim=(0, 500), ylim=(-.1, .1))
+    # hline!([0],  label="",linestyle=:dash)
+    # g3 = plot(a3, title="Model c", label="", xlabel="Iterations", ylabel="Energy", xlim=(0, 500), ylim=(-.1, .1))
+    # hline!([0],  label="",linestyle=:dash)
+    # g4 = plot(a4, title="Model d", label="", xlabel="Iterations", xlim=(0, 500), ylim=(-.1, .1))
+    # hline!([0],  label="",linestyle=:dash)
+    # display(plot(q, g1, g2, g3, g4, layout=@layout([A{.0001h}; [B C]; [D E]])))
 
 end
 
 if save_flag
     using DelimitedFiles
-    open("data/energies_$(num_layers)_$(num_steps).txt", "w") do io
+    if isempty(desc)
+        energy_fname = "data/energies_$(num_layers)_$(num_steps).txt"
+        annihilator_fname = "data/annihilators_$(num_layers)_$(num_steps).txt"
+    else
+        energy_fname = "data/energies_$(num_layers)_$(num_steps)_$(desc).txt"
+        annihilator_fname = "data/annihilators_$(num_layers)_$(num_steps)_$(desc).txt"
+    end
+
+    open(energy_fname, "w") do io
         writedlm(io, [e1'; e2'; e3'; e4'], ", ")
     end
 
-    open("data/annihilators_$(num_layers)_$(num_steps).txt", "w") do io
+    open(annihilator_fname, "w") do io
         writedlm(io, [a1'; a2'; a3'; a4'], ", ")
     end
 
