@@ -19,6 +19,14 @@ s = ArgParseSettings()
     help = "Depth of PQC"
     arg_type = Int
     default = 20
+    "--num_shots"
+    help = "Estimate gradient using num_shot evaluations"
+    arg_type = Int
+    default = 0
+    "--entangler"
+    help = "Specify choice of 2 qubit entangler"
+    arg_type = String
+    default = "cnot"
     "--mu"
     help = "Interaction strength"
     arg_type = Float64
@@ -39,6 +47,12 @@ end
 
 args = parse_args(s)
 
+# two qubit entangling gates
+crx(nbit, i, j) = control(nbit, i, j=>Rx(0.0))
+ising(nbit, i, j) = put(nbit, (i, j)=>rot(kron(X, X), 0.0))
+entanglers = Dict("cnot"=>cnot, "crx"=>crx, "ising"=>ising)
+
+
 plot_jl = args["plot"]
 N = args["N"]
 num_steps = args["num_steps"]
@@ -46,11 +60,16 @@ num_layers = args["num_layers"]
 mu = args["mu"]
 save_flag = args["save"]
 desc = args["desc"]
+nshots = args["num_shots"]
+if nshots === 0
+    nshots=nothing
+end
+ent = entanglers[args["entangler"]]
 
-e1, a1, SYK1 = default_train(N, 0, mu, num_layers, num_steps)
-e2, a2, SYK2 = default_train(N, 1, mu, num_layers, num_steps)
-e3, a3, SYK3 = default_train(N, 2, mu, num_layers, num_steps)
-e4, a4, SYK4 = default_train(N, 3, mu, num_layers, num_steps)
+e1, a1, SYK1 = default_train(N, 0, mu, num_layers, num_steps; ent=ent, nshots=nshots)
+e2, a2, SYK2 = default_train(N, 1, mu, num_layers, num_steps; ent=ent, nshots=nshots)
+e3, a3, SYK3 = default_train(N, 2, mu, num_layers, num_steps; ent=ent, nshots=nshots)
+e4, a4, SYK4 = default_train(N, 3, mu, num_layers, num_steps; ent=ent, nshots=nshots)
 
 if plot_jl
 
