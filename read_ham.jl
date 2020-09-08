@@ -42,12 +42,18 @@ module read_ham
     end
 
 
+
     function read_hamiltonian(fname, N)
         lines = readlines(fname)
         SYK_energies = map(x -> parse(Float64, x), split(lines[1],","))
-        lines = lines[2:end]
+        left_lines = lines[2:Int((end-N+1)//2)]
+        right_lines = lines[Int((end-N+3)//2):end-N]
+        int_lines = lines[end-N+1:end]
         # print(lines[1])
-        construct_hamiltonian_from_terms(lines, N), SYK_energies
+        h_L = construct_hamiltonian_from_terms(left_lines, N)
+        h_R = construct_hamiltonian_from_terms(right_lines, N)
+        h_int = construct_hamiltonian_from_terms(int_lines, N)
+        h_L, h_R, h_int, SYK_energies
     end
 
     function read_annihilation(fname, N)
