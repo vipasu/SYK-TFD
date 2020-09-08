@@ -12,10 +12,8 @@ import sympy
 from scipy.linalg import eigh
 
 import cirq
-import openfermion as of
-from openfermion.ops import FermionOperator, MajoranaOperator
-from openfermion.transforms import (bravyi_kitaev, bravyi_kitaev_fast,
-                                    get_sparse_operator, jordan_wigner)
+from openfermion.ops import MajoranaOperator
+from openfermion.transforms import get_sparse_operator, jordan_wigner
 
 
 def factorial(n):
@@ -101,10 +99,6 @@ def main(N, seed, mu):
     matrix_ham = get_sparse_operator(total_ham) # todense() allows for ED
 
 
-    # Useful for debugging purposes
-    # all_strings = list(total_ham.terms)
-    # test_string = construct_pauli_string(total_ham, all_strings[0])
-
     # Diagonalize qubit hamiltonian to compare the spectrum of variational energy
     e, v = eigh(matrix_ham.todense())
     # Only get the lowest 4 eigenvalues
@@ -133,5 +127,4 @@ if __name__ == "__main__":
     parser.add_argument("--seed", dest="seed", default=0, type=int, help="Random seed")
     parser.add_argument("--mu", dest="mu", default=0.01, type=float, help="Interaction mu")
     args = parser.parse_args()
-    # print(args)
     main(args.N, args.seed, args.mu)
